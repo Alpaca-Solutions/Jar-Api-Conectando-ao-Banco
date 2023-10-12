@@ -4,11 +4,23 @@ import com.github.britooo.looca.api.core.Looca;
 import com.github.britooo.looca.api.group.discos.Disco;
 import com.github.britooo.looca.api.group.memoria.Memoria;
 import com.github.britooo.looca.api.group.processador.Processador;
+import com.github.britooo.looca.api.group.rede.Rede;
+import com.github.britooo.looca.api.group.rede.RedeInterface;
+import com.github.britooo.looca.api.group.rede.RedeInterfaceGroup;
+import com.github.britooo.looca.api.group.rede.RedeParametros;
 import com.github.britooo.looca.api.group.sistema.Sistema;
 import org.springframework.jdbc.core.JdbcTemplate;
+import oshi.SystemInfo;
+import oshi.hardware.HardwareAbstractionLayer;
+import oshi.hardware.NetworkIF;
 
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 
 public class DadosMaquina {
 
@@ -16,6 +28,56 @@ public class DadosMaquina {
     public static void main(String[] args) {
         // Inicializar Looca para obter informações do sistema
         Looca looca = new Looca();
+        JFrame frame = new JFrame("Informações da Máquina");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400, 300);
+
+
+        // Cria um botão
+
+        JPanel panel = new JPanel();
+        frame.add(panel);
+
+
+        // Cria uma área de texto para exibir informações
+        JTextArea textArea = new JTextArea(10, 30);
+        textArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(textArea);
+
+
+        JButton button = new JButton("Obter Informações da Máquina");
+
+
+
+
+        // Adiciona o botão e a área de texto ao painel
+        panel.add(button);
+        panel.add(scrollPane);
+
+        // Adiciona um listener ao botão
+        button.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                // Código para obter informações da máquina e exibi-las na área de texto
+                Looca looca = new Looca();
+                Processador processador = new Processador();
+                Memoria memoria = new Memoria();
+
+                textArea.setText("");
+
+
+                // Adicione mais informações conforme necessário
+
+                // Exibe informações usando a biblioteca Oshi
+                SystemInfo systemInfo = new SystemInfo();
+                HardwareAbstractionLayer hardware = systemInfo.getHardware();
+                textArea.append("Número de CPUs: " + hardware.getProcessor().getLogicalProcessorCount() + "\n");
+
+                // Adicione mais informações da biblioteca Oshi conforme necessário
+            }
+        });
+
+        // Torna a janela visível
+        frame.setVisible(true);
 
         // Inicializar a conexão com o banco de dados
         Conexao conexao = new Conexao();
@@ -69,6 +131,19 @@ public class DadosMaquina {
             // Converter memória total para gigabytes
             Double memoria_total = memoria.getDisponivel() / (1024 * 1024 * 1024.0);
             memoria_total = Math.round(memoria_total * 100.0) / 100.0;
+
+
+
+
+            textArea.append("Informações da Máquina:\n");
+            textArea.append("Porcentagem de Uso do Disco: " + porcentagem_uso_disco + "%\n");
+            textArea.append("Porcentagem do Uso de Memória: " + porcentagem_uso_memoria + "%\n");
+            textArea.append("Quantidade de RAM Disponível: " + quantidade_de_ram + " GB\n");
+            textArea.append("Memória Disponível: " + memoria_disponivel + " GB\n");
+            textArea.append("Tamanho Total do Disco: " + tot_disco + " GB\n");
+            textArea.append("Porcentagem de Uso da CPU: " + porcentagem_de_uso_da_cpu + "%\n");
+            textArea.append("Tamanho Disponível do Disco: " + tamanho_disponivel_do_disco + " GB\n");
+            textArea.append("Memória Total: " + memoria_total + " GB\n");
 
             System.out.println(
                     String.format(

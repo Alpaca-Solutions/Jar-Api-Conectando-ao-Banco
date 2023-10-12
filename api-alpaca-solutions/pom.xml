@@ -27,8 +27,6 @@
             <version>2.2.0</version>
         </dependency>
 
-
-
         <!-- dependências do spring jdbc -->
         <dependency>
             <groupId>org.springframework</groupId>
