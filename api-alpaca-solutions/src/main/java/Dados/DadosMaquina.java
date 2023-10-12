@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.util.List;
 
 public class DadosMaquina {
 
@@ -70,8 +71,6 @@ public class DadosMaquina {
                 // Exibe informações usando a biblioteca Oshi
                 SystemInfo systemInfo = new SystemInfo();
                 HardwareAbstractionLayer hardware = systemInfo.getHardware();
-                textArea.append("Número de CPUs: " + hardware.getProcessor().getLogicalProcessorCount() + "\n");
-
                 // Adicione mais informações da biblioteca Oshi conforme necessário
             }
         });
@@ -133,7 +132,17 @@ public class DadosMaquina {
             memoria_total = Math.round(memoria_total * 100.0) / 100.0;
 
 
+            List<RedeInterface> interfaces = looca.getRede().getGrupoDeInterfaces().getInterfaces();
+            long pacotesRecebidosWlan6 = -1;
+            long pacotesEnviadosWlan6 = -1;
 
+            for (RedeInterface interfaceRede : interfaces) {
+                if ("wlan6".equals(interfaceRede.getNome())) {
+                    pacotesRecebidosWlan6 = interfaceRede.getPacotesRecebidos();
+                    pacotesEnviadosWlan6 = interfaceRede.getPacotesEnviados();
+                    break;
+                }
+            }
 
             textArea.append("Informações da Máquina:\n");
             textArea.append("Porcentagem de Uso do Disco: " + porcentagem_uso_disco + "%\n");
@@ -144,6 +153,10 @@ public class DadosMaquina {
             textArea.append("Porcentagem de Uso da CPU: " + porcentagem_de_uso_da_cpu + "%\n");
             textArea.append("Tamanho Disponível do Disco: " + tamanho_disponivel_do_disco + " GB\n");
             textArea.append("Memória Total: " + memoria_total + " GB\n");
+            textArea.append("Quantidade de Bytes Recebidos: " + pacotesRecebidosWlan6 + " Mbs\n");
+            textArea.append("Quantidade de Bytes Enviados " + pacotesEnviadosWlan6 + "Mbs\n");
+
+
 
             System.out.println(
                     String.format(
@@ -155,14 +168,18 @@ public class DadosMaquina {
                             Tamanho Total do Disco: %s
                             Porcentagem de Uso da CPU: %s
                             Tamanho disponivel do disco: %s
-                            Memoria Total: %s
+                            Memoria Total: %s,
+                            Quantidade de Bytes Recebidos: %d
+                            Quantidade de Bytes Enviados: %d
                             """, porcentagem_uso_disco, porcentagem_uso_memoria,
-                            quantidade_de_ram, memoria_disponivel, tot_disco, porcentagem_de_uso_da_cpu, tamanho_disponivel_do_disco, memoria_total));
+                            quantidade_de_ram, memoria_disponivel, tot_disco, porcentagem_de_uso_da_cpu, tamanho_disponivel_do_disco, memoria_total, pacotesRecebidosWlan6 , pacotesEnviadosWlan6));
 
             // Inserir os dados no banco de dados
-            con.update("insert into servidor (porcentagem_uso_disco, porcentagem_uso_memoria, quantidade_de_ram, memoria_disponivel, tamanho_total_disco, porcentagem_uso_cpu, tamanho_disponivel_do_disco, memoria_total) values (?, ?, ?, ?, ?, ?, ?, ?)",
+            con.update("insert into servidor (porcentagem_uso_disco, porcentagem_uso_memoria, quantidade_de_ram, memoria_disponivel, tamanho_total_disco, porcentagem_uso_cpu, tamanho_disponivel_do_disco, memoria_total," +
+                            "quantidade_de_bytes_recebidos, quantidade_de_bytes_enviados) values (?, ?, ?, ?, ?, ?, ?, ? , ? , ?)",
                     porcentagem_uso_disco, porcentagem_uso_memoria,
-                    quantidade_de_ram, memoria_disponivel, tot_disco, porcentagem_de_uso_da_cpu, tamanho_disponivel_do_disco, memoria_total);
+                    quantidade_de_ram, memoria_disponivel, tot_disco, porcentagem_de_uso_da_cpu, tamanho_disponivel_do_disco, memoria_total,
+                    pacotesRecebidosWlan6 , pacotesRecebidosWlan6);
 
             System.out.println("Inserido Com Sucesso");
         } catch (Error erro) {
