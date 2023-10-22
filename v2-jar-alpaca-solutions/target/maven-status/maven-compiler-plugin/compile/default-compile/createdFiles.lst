@@ -1,2 +1,6 @@
+dados\Memoria.class
 dados\Dados.class
+dados\CPU.class
+dados\Rede.class
 dados\Conexao.class
+dados\Disco.class

@@ -12,30 +12,30 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.Scanner;
 
-
 public class Dados {
     public static void main(String[] args) {
+        // Inicializa a conexão com o banco de dados
         Conexao conexao = new Conexao();
         JdbcTemplate con = conexao.getConexaoDoBanco();
         Scanner scanner = new Scanner(System.in);
         String continuar;
+        Rede rede02 = new Rede();
 
-
+        // Cria a tabela 'servidor' se ela não existir
         con.update("create table IF NOT EXISTS servidor (\n" +
                 "idservidor int primary key auto_increment,\n" +
-                "porcentagem_uso_disco decimal(10 , 2),\n" +
-                "porcentagem_uso_memoria decimal(10 , 2),\n" +
-                "quantidade_de_ram decimal(10 , 2),\n" +
-                "memoria_disponivel decimal(10 , 2),\n" +
-                "tamanho_total_disco decimal(10 , 2),\n" +
-                "porcentagem_uso_cpu decimal(10 , 2),\n" +
-                "tamanho_disponivel_do_disco decimal(10 , 2),\n" +
-                "memoria_total decimal(10 , 2),\n" +
-                "quantidade_de_bytes_recebidos long,\n" +
-                "quantidade_de_bytes_enviados long,\n" +
+                "porcentagem_uso_disco decimal,\n" +
+                "porcentagem_uso_memoria decimal,\n" +
+                "quantidade_de_ram decimal,\n" +
+                "memoria_disponivel decimal,\n" +
+                "tamanho_total_disco decimal,\n" +
+                "porcentagem_uso_cpu decimal,\n" +
+                "tamanho_disponivel_do_disco decimal,\n" +
+                "memoria_total decimal,\n" +
+                "quantidade_de_bytes_recebidos decimal,\n" +
+                "quantidade_de_bytes_enviados decimal,\n" +
                 "dthora datetime default current_timestamp\n" +
                 ");");
-
 
         do {
             Looca looca = new Looca();
@@ -43,71 +43,65 @@ public class Dados {
             Processador processador = new Processador();
             Memoria memoria = new Memoria();
             double tamanhoTotalGiB = 0;
-            Double tot_disco = 0.0;
-            Integer total_disco = 0;
-            Double tamanho_disco = 0.0;
+            double tot_disco = 0.0;
+            int total_disco = 0;
+            double tamanho_disco = 0.0;
 
+            // Coleta informações sobre os discos
             for (Disco disco : looca.getGrupoDeDiscos().getDiscos()) {
                 tamanhoTotalGiB = (double) disco.getTamanho() / (1024 * 1024 * 1024);
-                tot_disco = Math.round(tamanhoTotalGiB * 100.0) / 100.0;
+                tot_disco = (double) Math.round(tamanhoTotalGiB * 100) / 100;
                 tamanho_disco = Double.valueOf(disco.getTamanho());
-                total_disco = (int) Math.round(tamanhoTotalGiB);
+                total_disco = (int) Math.round(tamanhoTotalGiB * 100) / 100;
             }
 
             Double total_pro = processador.getUso();
-            BigDecimal porcentagem_uso_disco = BigDecimal.valueOf(total_pro).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal porcentagem_uso_memoria = BigDecimal.valueOf((double) memoria.getEmUso() / memoria.getTotal() * 100).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal quantidade_de_ram = BigDecimal.valueOf((double) memoria.getDisponivel() / (1024 * 1024 * 1024)).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal porcentagem_de_uso_da_cpu = BigDecimal.valueOf(processador.getUso() / processador.getNumeroCpusFisicas()).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal tamanho_disponivel_do_disco = new BigDecimal(tamanho_disco)
-                    .setScale(2, RoundingMode.HALF_UP)
-                    .divide(new BigDecimal(1024 * 1024 * 1024), 2, RoundingMode.HALF_UP);
+            Double porcentagem_uso_memoria = (double) memoria.getEmUso() / memoria.getTotal() * 100;
+            Double quantidade_de_ram = (double) memoria.getDisponivel() / (1024 * 1024 * 1024);
+            Double porcentagem_de_uso_da_cpu = processador.getUso() / processador.getNumeroCpusFisicas();
+            Double tamanho_disponivel_do_disco = tamanho_disco / (1024 * 1024 * 1024);
             Double memoria_total = (double) memoria.getTotal() / (1024 * 1024 * 1024.0);
 
-            List<RedeInterface> interfaces = looca.getRede().getGrupoDeInterfaces().getInterfaces();
-            long pacotesRecebidosWlan6 = -1;
-            long pacotesEnviadosWlan6 = -1;
+            List<RedeInterface> dados_de_rede = looca.getRede().getGrupoDeInterfaces().getInterfaces();
+            RedeInterface adaptador_com_dados = null;
+            long maiorBytesrecebidos = 0;
+            long total_bytes_recebidos = 0;
+            long total_bytes_enviados = 0;
 
-            for (RedeInterface interfaceRede : interfaces) {
-                if ("wlan6".equals(interfaceRede.getNome())) {
-                    pacotesRecebidosWlan6 = interfaceRede.getPacotesRecebidos();
-                    pacotesEnviadosWlan6 = interfaceRede.getPacotesEnviados();
-                    break;
+            // Coleta informações de rede
+            for (RedeInterface interfaceRede : dados_de_rede) {
+                long bytes_recebidos = interfaceRede.getBytesRecebidos();
+                if (bytes_recebidos > maiorBytesrecebidos) {
+                    adaptador_com_dados = interfaceRede;
+                    maiorBytesrecebidos = bytes_recebidos;
                 }
             }
 
-            System.out.println("Deseja continuar inserindo dados? Digite '1' para continuar ou qualquer outra tecla para sair: ");
-            continuar = scanner.nextLine();
+            long memoria_disponivel = memoria.getDisponivel();
+            long total_memoria = memoria.getTotal();
+            total_bytes_enviados = adaptador_com_dados.getBytesEnviados();
+            total_bytes_recebidos = adaptador_com_dados.getBytesRecebidos();
+            long qtd_nucleos_cpu = processador.getNumeroCpusFisicas() + processador.getNumeroCpusLogicas();
 
-            if (!"1".equals(continuar)) {
-                break;
-            }
+            // Cria objetos com os dados coletados
+            Rede rede01 = new Rede(total_bytes_recebidos, total_bytes_enviados);
+            dados.Memoria memoria01 = new dados.Memoria(porcentagem_uso_memoria, memoria_disponivel, total_memoria, quantidade_de_ram);
+            dados.CPU cpu01 = new dados.CPU(porcentagem_de_uso_da_cpu, qtd_nucleos_cpu);
+            dados.Disco disco01 = new dados.Disco(total_pro, tot_disco, tamanho_disponivel_do_disco);
 
-            System.out.println(
-                    String.format(
-                            """
-                                    Porcentagem de Uso do Disco %s:
-                                    Porcentagem do Uso de Memória: %s
-                                    Quantidade de Ram Disponível: %s
-                                    Memoria Disponível: %s
-                                    Tamanho Total do Disco: %s
-                                    Porcentagem de Uso da CPU: %s
-                                    Tamanho disponivel do disco: %s
-                                    Memoria Total: %s,
-                                    Quantidade de Bytes Recebidos: %d
-                                    Quantidade de Bytes Enviados: %d
-                                    """, porcentagem_uso_disco, porcentagem_uso_memoria,
-                            quantidade_de_ram, (double) memoria.getDisponivel() / (1024 * 1024 * 1024.0),
-                            tot_disco, porcentagem_de_uso_da_cpu, tamanho_disponivel_do_disco, memoria_total, pacotesRecebidosWlan6, pacotesEnviadosWlan6));
+            // Exibe os dados coletados
+            System.out.println(memoria01);
+            System.out.println(rede01);
+            System.out.println(disco01);
+            System.out.println(cpu01);
 
-            // Inserir os dados no banco de dados
+            // Insere os dados no banco de dados
             con.update("insert into servidor (porcentagem_uso_disco, porcentagem_uso_memoria, quantidade_de_ram, memoria_disponivel, tamanho_total_disco, porcentagem_uso_cpu, tamanho_disponivel_do_disco, memoria_total," +
                             "quantidade_de_bytes_recebidos, quantidade_de_bytes_enviados) values (?, ?, ?, ?, ?, ?, ?, ? , ? , ?)",
-                    porcentagem_uso_disco, porcentagem_uso_memoria,
-                    quantidade_de_ram, (double) memoria.getDisponivel() / (1024 * 1024 * 1024.0), tot_disco, porcentagem_de_uso_da_cpu, tamanho_disponivel_do_disco, memoria_total,
-                    pacotesRecebidosWlan6, pacotesEnviadosWlan6);
-
-            System.out.println("Inserido Com Sucesso");
+                    disco01.getPorcentagem_de_Uso_do_Disco(), memoria01.getPorcentagem_uso_memoria(), memoria01.getQuantidade_de_ram(),
+                    memoria01.getQtd_memoria_disponivel(), disco01.getTamanho_Total_do_Disco(),
+                    cpu01.getUso_da_cpu(), disco01.getTamanho_Total_do_Disco(), memoria01.getTamanho_memoria(),
+                    rede01.getQuantidade_bytes_recebidos(), rede01.getQuantidade_bytes_enviados());
         } while (true);
     }
 }
